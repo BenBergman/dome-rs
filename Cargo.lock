@@ -76,6 +76,7 @@ name = "dome"
 version = "0.1.0"
 dependencies = [
  "itsybitsy_m0 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "panic-abort 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -120,6 +121,11 @@ dependencies = [
 [[package]]
 name = "nb"
 version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
+name = "panic-abort"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
@@ -245,6 +251,7 @@ dependencies = [
 "checksum mashup 0.1.9 (registry+https://github.com/rust-lang/crates.io-index)" = "f2d82b34c7fb11bb41719465c060589e291d505ca4735ea30016a91f6fc79c3b"
 "checksum mashup-impl 0.1.9 (registry+https://github.com/rust-lang/crates.io-index)" = "aa607bfb674b4efb310512527d64266b065de3f894fc52f84efcbf7eaa5965fb"
 "checksum nb 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "69f380b5fe9fab8c0d7a6a99cda23e2cc0463bedb2cbc3aada0813b98496ecdc"
+"checksum panic-abort 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "6bc796c620f27056d4ffe7c558533fd67ae5af0fd8e919fbe38de803368af73e"
 "checksum proc-macro-hack 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)" = "2c725b36c99df7af7bf9324e9c999b9e37d92c8f8caf106d82e1d7953218d2d8"
 "checksum proc-macro-hack-impl 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)" = "2b753ad9ed99dd8efeaa7d2fb8453c8f6bc3e54b97966d35f1bc77ca6865254a"
 "checksum proc-macro2 0.4.24 (registry+https://github.com/rust-lang/crates.io-index)" = "77619697826f31a02ae974457af0b29b723e5619e113e9397b8b82c6bd253f09"
