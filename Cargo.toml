@@ -1,0 +1,9 @@
+[package]
+name = "dome"
+version = "0.1.0"
+authors = ["Ben Bergman <ben@benbergman.ca>"]
+edition = "2018"
+
+[dependencies]
+panic-abort = "~0.2"
+itsybitsy_m0 = "~0.1"
