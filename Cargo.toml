@@ -7,3 +7,5 @@ edition = "2018"
 [dependencies]
 panic-abort = "~0.2"
 itsybitsy_m0 = "~0.1"
+embedded-hal = "~0.2"
+libm = "~0.1"
