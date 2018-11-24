@@ -70,7 +70,7 @@ fn main() -> ! {
         lights.draw();
 
         lights.clear();
-        counter = (counter + 1) % 60;
+        counter = (counter + 1) % 61;
         delay.delay_ms(200u8);
     }
 }
