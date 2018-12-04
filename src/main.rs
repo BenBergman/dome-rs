@@ -7,7 +7,7 @@ extern crate itsybitsy_m0 as itsy;
 extern crate libm;
 extern crate panic_abort;
 
-use hal::blocking::spi::Write;
+use hal::blocking::spi::{Transfer, Write};
 use hal::digital::OutputPin;
 use itsy::clock::GenericClockController;
 use itsy::delay::Delay;
@@ -29,7 +29,8 @@ fn main() -> ! {
     let mut pins = Pins::new(peripherals.PORT);
     let mut delay = Delay::new(core.SYST, &mut clocks);
 
-    let latch = pins.d2.into_open_drain_output(&mut pins.port);
+    let led_latch = pins.d2.into_open_drain_output(&mut pins.port);
+    let button_latch = pins.d7.into_open_drain_output(&mut pins.port);
 
     let spi = spi_master(
         &mut clocks,
@@ -42,20 +43,25 @@ fn main() -> ! {
         &mut pins.port,
     );
 
-    let mut lights = Lights::new(spi, latch);
+    let mut lights = Lights::new(spi, led_latch, button_latch);
     let mut counter = 0;
     loop {
         let base = CARTESIAN_MAP[counter];
-        for (i, &point) in CARTESIAN_MAP.iter().enumerate() {
-            // if distance from base is about 0.350, light it up
-            let direction = [base[0] - point[0], base[1] - point[1], base[2] - point[2]];
-            let distance = (direction[0] * direction[0]
-                + direction[1] * direction[1]
-                + direction[2] * direction[2])
-                .sqrt();
-            if distance < 0.4 {
-                lights.set_light(i);
+        let buttons = lights.read_buttons();
+        if buttons & 1u8 == 1u8 {
+            for (i, &point) in CARTESIAN_MAP.iter().enumerate() {
+                // if distance from base is about 0.350, light it up
+                let direction = [base[0] - point[0], base[1] - point[1], base[2] - point[2]];
+                let distance = (direction[0] * direction[0]
+                    + direction[1] * direction[1]
+                    + direction[2] * direction[2])
+                    .sqrt();
+                if distance < 0.4 {
+                    lights.set_light(i);
+                }
             }
+        } else {
+            lights.set_light(counter);
         }
         lights.draw();
 
@@ -65,25 +71,33 @@ fn main() -> ! {
     }
 }
 
-struct Lights<SPI: Write<u8>, LATCH: OutputPin> {
+struct Lights<
+    SPI: Transfer<u8, Error = E> + Write<u8>,
+    LED_LATCH: OutputPin,
+    BUTTON_LATCH: OutputPin,
+    E,
+> {
     // TODO: generalize spi and latch
     buffer: [u8; 8],
     spi: SPI,
-    latch: LATCH,
+    led_latch: LED_LATCH,
+    button_latch: BUTTON_LATCH,
     // TODO: Move coordinate mapping into here? It is pretty interdependant...
 }
 
-impl<SPI, LATCH> Lights<SPI, LATCH>
+impl<SPI, LED_LATCH, BUTTON_LATCH, E> Lights<SPI, LED_LATCH, BUTTON_LATCH, E>
 where
-    SPI: Write<u8>,
-    LATCH: OutputPin,
+    SPI: Transfer<u8, Error = E> + Write<u8>,
+    LED_LATCH: OutputPin,
+    BUTTON_LATCH: OutputPin,
 {
     // TODO: generalize spi params to take anything that implements SPI trait
-    fn new(spi: SPI, latch: LATCH) -> Self {
+    fn new(spi: SPI, led_latch: LED_LATCH, button_latch: BUTTON_LATCH) -> Self {
         Self {
             buffer: [0; 8],
             spi: spi,
-            latch: latch,
+            led_latch: led_latch,
+            button_latch: button_latch,
         }
     }
 
@@ -101,8 +115,16 @@ where
 
     fn draw(&mut self) {
         let _ = self.spi.write(&self.buffer);
-        self.latch.set_low();
-        self.latch.set_high();
+        self.led_latch.set_low();
+        self.led_latch.set_high();
+    }
+
+    fn read_buttons(&mut self) -> u8 {
+        self.button_latch.set_low();
+        let mut buffer = [0u8; 1];
+        let _ = self.spi.transfer(&mut buffer);
+        self.button_latch.set_high();
+        buffer[0]
     }
 }
 
