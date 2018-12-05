@@ -44,12 +44,21 @@ fn main() -> ! {
     );
 
     let mut lights = Lights::new(spi, led_latch, button_latch);
+    let mut state = [173, 42, 54, 254, 100, 103, 199, 72];
+    lights.set_lights(state);
+    lights.draw();
+    delay.delay_ms(200u8);
+
     let mut counter = 0;
     loop {
-        let base = CARTESIAN_MAP[counter];
-        let buttons = lights.read_buttons();
-        if buttons & 1u8 == 1u8 {
+        let mut new_state = [0; 8];
+        for (base_i, base) in CARTESIAN_MAP.iter().enumerate() {
+            let mut neighbours = 0;
+            let mut live_neighbours = 0;
             for (i, &point) in CARTESIAN_MAP.iter().enumerate() {
+                if i == base_i {
+                    continue;
+                }
                 // if distance from base is about 0.350, light it up
                 let direction = [base[0] - point[0], base[1] - point[1], base[2] - point[2]];
                 let distance = (direction[0] * direction[0]
@@ -57,16 +66,30 @@ fn main() -> ! {
                     + direction[2] * direction[2])
                     .sqrt();
                 if distance < 0.4 {
-                    lights.set_light(i);
+                    neighbours = neighbours + 1;
+                    if state[bank_from_index(i)] & (1 << bit_from_index(i)) > 0 {
+                        live_neighbours = live_neighbours + 1;
+                    }
                 }
             }
-        } else {
-            lights.set_light(counter);
+            if state[bank_from_index(base_i)] & (1 << bit_from_index(base_i)) == 0
+                && live_neighbours == 2
+            {
+                new_state[bank_from_index(base_i)] =
+                    new_state[bank_from_index(base_i)] | (1 << bit_from_index(base_i));
+            } else if state[bank_from_index(base_i)] & (1 << bit_from_index(base_i)) != 0
+                && (live_neighbours == 3 || live_neighbours == 4)
+            {
+                new_state[bank_from_index(base_i)] =
+                    new_state[bank_from_index(base_i)] | (1 << bit_from_index(base_i));
+            } else {
+                new_state[bank_from_index(base_i)] =
+                    new_state[bank_from_index(base_i)] & !(1 << bit_from_index(base_i));
+            }
         }
+        state = new_state;
+        lights.set_lights(state);
         lights.draw();
-
-        lights.clear();
-        counter = (counter + 1) % 61;
         delay.delay_ms(200u8);
     }
 }
@@ -83,6 +106,14 @@ struct Lights<
     led_latch: LED_LATCH,
     button_latch: BUTTON_LATCH,
     // TODO: Move coordinate mapping into here? It is pretty interdependant...
+}
+
+fn bank_from_index(index: usize) -> usize {
+    7 - (index / 8)
+}
+
+fn bit_from_index(index: usize) -> usize {
+    index % 8
 }
 
 impl<SPI, LED_LATCH, BUTTON_LATCH, E> Lights<SPI, LED_LATCH, BUTTON_LATCH, E>
@@ -102,9 +133,13 @@ where
     }
 
     fn set_light(&mut self, i: usize) {
-        let bank = 7 - (i / 8);
-        let bit = i % 8;
+        let bank = bank_from_index(i);
+        let bit = bit_from_index(i);
         self.buffer[bank] = self.buffer[bank] | (1 << bit);
+    }
+
+    fn set_lights(&mut self, state: [u8; 8]) {
+        self.buffer[..].clone_from_slice(&state);
     }
 
     fn clear(&mut self) {
